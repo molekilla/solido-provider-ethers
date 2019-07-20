@@ -1,15 +1,15 @@
 import { ethers, Contract, ContractFunction } from 'ethers';
 // eslint-disable-next-line spaced-comment
-import { IMethodOrEventCall, EventFilter, SolidoProviderType } from '@decent-bet/solido';
+import { IMethodOrEventCall, EventFilter, SolidoProviderType, ProviderInstance } from '@decent-bet/solido';
 import { EthersSigner } from './EthersSigner';
 import { EthersSettings } from './EthersSettings';
 import { SolidoProvider } from '@decent-bet/solido';
 import { SolidoContract, SolidoSigner } from '@decent-bet/solido';
 import { SolidoTopic } from '@decent-bet/solido';
 /**
- * Web3Plugin provider for Solido
+ * EthersPlugin provider for Solido
  */
-export class Web3Plugin extends SolidoProvider implements SolidoContract {
+export class EthersPlugin extends SolidoProvider implements SolidoContract {
     private provider: ethers.providers.Provider;
     private wallet: ethers.Wallet;
     public network: string;
@@ -38,6 +38,35 @@ export class Web3Plugin extends SolidoProvider implements SolidoContract {
             this.wallet = new ethers.Wallet(privateKey);
         }        
     }
+
+    public connect() {
+        if (this.provider && this.network && this.defaultAccount) {
+            this.instance = new ethers.Contract(
+                this.contractImport.address[this.network], 
+                this.contractImport.raw.abi as any,
+                this.provider
+            )
+            this.address = this.contractImport.address[this.network];        
+            if (this.privateKey) {
+                this.wallet = new ethers.Wallet(this.privateKey);
+            }        
+        } else {
+          throw new Error('Missing onReady settings');
+        }
+      }
+    
+      public setInstanceOptions(settings: ProviderInstance) {
+        this.provider = settings.provider;
+        if (settings.options.network) {
+          this.network = settings.options.network;
+        }
+        if (settings.options.defaultAccount) {
+          this.defaultAccount = settings.options.defaultAccount;
+        }
+        if (settings.options.privateKey) {
+            this.privateKey = settings.options.privateKey;
+        }        
+      }
 
     async prepareSigning(methodCall: any, options: IMethodOrEventCall, args: any[]):  Promise<SolidoSigner> {
         let gas = options.gas;
@@ -68,7 +97,7 @@ export class Web3Plugin extends SolidoProvider implements SolidoContract {
         });
     }
     /**
-     * Gets a Web3 Method object
+     * Gets a Ethers Method object
      * @param name method name
      */
     getMethod(

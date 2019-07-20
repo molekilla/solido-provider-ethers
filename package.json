@@ -29,14 +29,14 @@
     "jasmine-ts": "^0.3.0",
     "nodemon": "^1.18.10",
     "ts-node": "^8.0.3",
-    "typescript": "^3.3.4000",
-    "@decent-bet/solido": "1.0.0-beta.2"
+    "@decent-bet/solido": "^1.1.2",
+    "typescript": "^3.3.4000"
   },
   "dependencies": {
     "ethers": "^4.0.27",
     "rxjs": "^6.5.1"
   },
   "peerDependencies": {
-    "@decent-bet/solido": "1.0.0-beta.2"
+    "@decent-bet/solido": "^1.1.2"
   }
 }
