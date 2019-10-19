@@ -22,6 +22,9 @@ export class EthersPlugin extends SolidoProvider implements SolidoContract {
         return SolidoProviderType.Ethers;
     }
 
+    describe() {
+        return  `network: ${this.network}`;
+    }
     onReady<T>(settings: T & EthersSettings) {
         const { privateKey, provider, network, defaultAccount } = settings;
         this.privateKey = privateKey;
@@ -114,7 +117,7 @@ export class EthersPlugin extends SolidoProvider implements SolidoContract {
     getEvent(
         name: string,
     ): any {
-        return this.instance.filter[name] as EventFilter;
+        return this.instance.filter[name] as EventFilter<object>;
     }
 
     public async getEvents<P, T>(name: string, eventFilter?: EventFilter<T & any>): Promise<(P)[]> {
