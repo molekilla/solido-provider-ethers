@@ -39,6 +39,9 @@ const provider = ethers.getDefaultProvider('rinkeby')// new ethers.providers.Jso
                 provider,
                 network: 'rinkeby',
                 store: {
+                  state: {
+                    'balanceOf': 0,
+                  },
                   mapActions: {
                     { 
                       'transfer': {
@@ -64,7 +67,7 @@ const provider = ethers.getDefaultProvider('rinkeby')// new ethers.providers.Jso
         }
     }).connect();
 
-contracts.cDai.subscribe('transfer',  (data) => {
+contracts.cDai.subscribe('balanceOf',  (data) => {
   console.log(data);
 })
 ```
