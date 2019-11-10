@@ -102,8 +102,8 @@ export class EthersPlugin extends SolidoProvider implements SolidoContract {
             gasLimit: gas,
         });
 
-        const hasMapAction = this.store.mapActions.find(i => i[options.name])
-        if (hasMapAction[options.name]) {
+        const hasMapAction = this.store.mapActions[options.name]
+        if (hasMapAction) {
             const mapAction = hasMapAction[options.name];
             // todo
             let evt: ethers.EventFilter = this.instance.filters[mapAction.onFilter]();

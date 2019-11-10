@@ -39,7 +39,7 @@ const provider = ethers.getDefaultProvider('rinkeby')// new ethers.providers.Jso
                 provider,
                 network: 'rinkeby',
                 store: {
-                  mapActions: [
+                  mapActions: {
                     { 
                       'transfer': {
                         getter: 'balanceOf',
@@ -49,7 +49,16 @@ const provider = ethers.getDefaultProvider('rinkeby')// new ethers.providers.Jso
                         }
                       } 
                     },
-                  ]
+                    { 
+                      'mint': {
+                        getter: 'balanceOf',
+                        onFilter: 'Mint',
+                        mutate: (ctx) => {
+                          return from(ctx.method(ctx.defaultAddress));
+                        }
+                      } 
+                    },
+                  }
                 }
             }
         }
