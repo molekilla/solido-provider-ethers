@@ -45,7 +45,7 @@ const provider = ethers.getDefaultProvider('rinkeby')// new ethers.providers.Jso
                         getter: 'balanceOf',
                         onFilter: 'Transfer',
                         mutate: (ctx) => {
-                          return from(ctx.method(ctx.defaultAddress));
+                          return from(ctx.getter(ctx.defaultAddress));
                         }
                       } 
                     },
@@ -54,7 +54,7 @@ const provider = ethers.getDefaultProvider('rinkeby')// new ethers.providers.Jso
                         getter: 'balanceOf',
                         onFilter: 'Mint',
                         mutate: (ctx) => {
-                          return from(ctx.method(ctx.defaultAddress));
+                          return from(ctx.getter(ctx.defaultAddress));
                         }
                       } 
                     },

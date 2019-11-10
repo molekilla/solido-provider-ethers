@@ -111,7 +111,7 @@ export class EthersPlugin extends SolidoProvider implements SolidoContract {
                 // call getter
                 const fn = this.instance.functions[mapAction.getter];
                 const mutateRes = await mapAction.mutation({
-                    method: fn,
+                    getter: fn,
                     address: this.defaultAccount,
                     actionArgs: args,
                 }).toPromise();
