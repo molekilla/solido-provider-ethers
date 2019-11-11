@@ -47,8 +47,8 @@ const provider = ethers.getDefaultProvider('rinkeby')// new ethers.providers.Jso
                       'transfer': {
                         getter: 'balanceOf',
                         onFilter: 'Transfer',
-                        mutate: (ctx) => {
-                          return from(ctx.getter(ctx.defaultAddress));
+                        mutation: ({ getter, address, actionArgs}) => {
+                          return from(getter(address));
                         }
                       } 
                     },
@@ -56,8 +56,8 @@ const provider = ethers.getDefaultProvider('rinkeby')// new ethers.providers.Jso
                       'mint': {
                         getter: 'balanceOf',
                         onFilter: 'Mint',
-                        mutate: (ctx) => {
-                          return from(ctx.getter(ctx.defaultAddress));
+                        mutation: ({ getter, address, actionArgs}) => {
+                          return from(getter(address));
                         }
                       } 
                     },
@@ -69,7 +69,11 @@ const provider = ethers.getDefaultProvider('rinkeby')// new ethers.providers.Jso
 
 contracts.cDai.subscribe('balanceOf',  (data) => {
   console.log(data);
-})
+});
+
+
+
+
 ```
 
 ### Lazy loading contracts

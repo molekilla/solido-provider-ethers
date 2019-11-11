@@ -1,4 +1,5 @@
 import { Observable, Subject } from 'rxjs';
+import { pluck } from 'rxjs/operators';
 import { ethers, Contract, ContractFunction } from 'ethers';
 // eslint-disable-next-line spaced-comment
 import { IMethodOrEventCall, EventFilter, SolidoProviderType, ProviderInstance } from '@decent-bet/solido';
@@ -18,7 +19,7 @@ export interface MapAction {
 }
 
 export interface ReactiveContractStore {
-    mapActions?: MapAction[],
+    mapActions?: MapAction,
     state: object;
 }
 
@@ -33,7 +34,10 @@ export class EthersPlugin extends SolidoProvider implements SolidoContract {
     public defaultAccount: string;
     public address: string;
     private privateKey: string;
-    private store: ReactiveContractStore;
+    private store: ReactiveContractStore = {
+        mapActions: {},
+        state: {}
+    };
     private _subscriber: Subject<object>;
     public getProviderType(): SolidoProviderType {
         return SolidoProviderType.Ethers;
@@ -52,14 +56,23 @@ export class EthersPlugin extends SolidoProvider implements SolidoContract {
             this.contractImport.address[network],
             this.contractImport.raw.abi as any,
             provider
-        )
+        );
         this.address = this.contractImport.address[network];
         if (privateKey) {
-            this.wallet = new ethers.Wallet(privateKey);
+            this.wallet = new ethers.Wallet(privateKey, provider);
+            this.instance = new ethers.Contract(
+                this.contractImport.address[network],
+                this.contractImport.raw.abi as any,
+                this.wallet,
+            );
         }
         if (store) {
             this._subscriber = new Subject();
             this.store = store;
+
+            this._subscriber.subscribe((state) => {
+                this.store.state = state;
+            });
         }
     }
 
@@ -72,7 +85,19 @@ export class EthersPlugin extends SolidoProvider implements SolidoContract {
             )
             this.address = this.contractImport.address[this.network];
             if (this.privateKey) {
-                this.wallet = new ethers.Wallet(this.privateKey);
+                this.wallet = new ethers.Wallet(this.privateKey, this.provider);
+                this.instance = new ethers.Contract(
+                    this.contractImport.address[this.network],
+                    this.contractImport.raw.abi as any,
+                    this.wallet,
+                );
+            }
+
+            if (this.store) {
+                this._subscriber = new Subject();
+                this._subscriber.subscribe((state) => {
+                    this.store.state = state;
+                });
             }
         } else {
             throw new Error('Missing onReady settings');
@@ -90,6 +115,9 @@ export class EthersPlugin extends SolidoProvider implements SolidoContract {
         if (settings.options.privateKey) {
             this.privateKey = settings.options.privateKey;
         }
+        if (settings.options.store) {
+            this.store = settings.options.store;
+        }
     }
 
     async prepareSigning(methodCall: any, options: IMethodOrEventCall, args: any[]): Promise<SolidoSigner> {
@@ -105,15 +133,21 @@ export class EthersPlugin extends SolidoProvider implements SolidoContract {
         const hasMapAction = this.store.mapActions[options.name]
         if (hasMapAction) {
             const mapAction = hasMapAction[options.name];
-            // todo
+            console.log(mapAction);
+            // remove previous listeners
+            const count = this.instance.listenerCount(mapAction.onFilter);
+            if (count > 0) {
+                this.instance.removeAllListeners(mapAction.onFilter);
+            }
+            console.log(`has events ${count}`);
             let evt: ethers.EventFilter = this.instance.filters[mapAction.onFilter]();
-            this.instance.on(evt, async (...args) => {
+            this.instance.on(evt, async () => {
                 // call getter
                 const fn = this.instance.functions[mapAction.getter];
                 const mutateRes = await mapAction.mutation({
                     getter: fn,
                     address: this.defaultAccount,
-                    actionArgs: args,
+                    actionArgs: [...args],
                 }).toPromise();
                 this._subscriber.next({
                     ...this.store.state,
@@ -125,13 +159,8 @@ export class EthersPlugin extends SolidoProvider implements SolidoContract {
         return new EthersSigner(this.provider, signedTx);
     }
 
-    subscribe(key: string, callback: any) {
-        this._subscriber.subscribe((state) => {
-            if (state[key]) {
-                callback(state[key]);
-            }
-            this.store.state = state;
-        })
+    subscribe(key: string, fn: any) {
+        return this._subscriber.pipe(pluck(key)).subscribe(fn);
     }
 
 
