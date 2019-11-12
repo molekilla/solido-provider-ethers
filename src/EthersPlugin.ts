@@ -116,6 +116,7 @@ export class EthersPlugin extends SolidoProvider implements SolidoContract {
             this.privateKey = settings.options.privateKey;
         }
         if (settings.options.store) {
+            this._subscriber = new Subject();
             this.store = settings.options.store;
         }
     }
@@ -130,17 +131,11 @@ export class EthersPlugin extends SolidoProvider implements SolidoContract {
             gasLimit: gas,
         });
 
-        const hasMapAction = this.store.mapActions[options.name]
-        if (hasMapAction) {
-            const mapAction = hasMapAction[options.name];
-            console.log(mapAction);
-            // remove previous listeners
-            const count = this.instance.listenerCount(mapAction.onFilter);
-            if (count > 0) {
-                this.instance.removeAllListeners(mapAction.onFilter);
-            }
-            console.log(`has events ${count}`);
-            let evt: ethers.EventFilter = this.instance.filters[mapAction.onFilter]();
+        const mapActionName = options.dispatch;
+        const mapAction = this.store.mapActions[mapActionName];
+        if (mapAction) {
+            let evt = this.instance.filters[mapAction.onFilter]();
+            this.instance.removeAllListeners(evt);
             this.instance.on(evt, async () => {
                 // call getter
                 const fn = this.instance.functions[mapAction.getter];
@@ -155,8 +150,7 @@ export class EthersPlugin extends SolidoProvider implements SolidoContract {
                 });
             })
         }
-        const signedTx = this.wallet.sign(tx);
-        return new EthersSigner(this.provider, signedTx);
+        return new EthersSigner(this.provider, tx);
     }
 
     subscribe(key: string, fn: any) {
