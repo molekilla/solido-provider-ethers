@@ -3,9 +3,9 @@ import { SolidoSigner } from '@decent-bet/solido';
 
 
 export class EthersSigner implements SolidoSigner {
-    constructor(private provider: ethers.providers.Provider, private signedTransaction: any) {
+    constructor(private provider: ethers.providers.Provider, private tx: any) {
     }
     async requestSigning(): Promise<any> {
-        return await this.provider.sendTransaction(this.signedTransaction);
+        return await this.tx.wait(2);
     }
 }
