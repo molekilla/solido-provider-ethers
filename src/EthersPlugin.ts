@@ -131,7 +131,7 @@ export class EthersPlugin extends SolidoProvider implements SolidoContract {
             gasLimit: gas,
         });
 
-        const mapActionName = options.dispatch;
+        const mapActionName = (<any>options).dispatch;
         const mapAction = this.store.mapActions[mapActionName];
         if (mapAction) {
             let evt = this.instance.filters[mapAction.onFilter]();
