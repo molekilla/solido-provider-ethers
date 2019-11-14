@@ -135,26 +135,29 @@ export class EthersPlugin extends SolidoProvider implements SolidoContract {
         const mapAction = this.store.mapActions[mapActionName];
         if (mapAction) {
             let evt = this.instance.filters[mapAction.onFilter]();
-            this.instance.removeAllListeners(evt);
-            this.instance.on(evt, async () => {
-                // call getter
-                const fn = this.instance.functions[mapAction.getter];
-                const mutateRes = await mapAction.mutation({
-                    getter: fn,
-                    address: this.defaultAccount,
-                    actionArgs: [...args],
-                }).toPromise();
-                this._subscriber.next({
-                    ...this.store.state,
-                    [mapAction.getter]: mutateRes,
-                });
-            })
+            if (this.instance.listenerCount(mapAction.onFilter) === 0) {
+                this.instance.removeAllListeners(evt);
+                this.instance.on(evt, async () => {
+                    // call getter
+                    const fn = this.instance.functions[mapAction.getter];
+                    const mutateRes = await mapAction.mutation({
+                        contract: this,
+                        e: [...args],
+                    }).toPromise();
+                    this._subscriber.next({
+                        ...this.store.state,
+                        [mapAction.getter]: mutateRes,
+                    });
+                })
+            }
         }
         return new EthersSigner(this.provider, tx);
     }
 
     subscribe(key: string, fn: any) {
-        return this._subscriber.pipe(pluck(key)).subscribe(fn);
+        if (Object.keys(this.store.state).find(i => i === key)) {
+            return this._subscriber.pipe(pluck(key)).subscribe(fn);
+        }
     }
 
 
