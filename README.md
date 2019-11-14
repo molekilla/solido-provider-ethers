@@ -3,77 +3,91 @@ Solido provider for Ethers
 
 ## Examples
 
-### Setup:
 
+
+### Reactive
 ```typescript
 import {
   SolidoModule,
 } from '@decent-bet/solido';
 import {
- EthersPlugin,
- EthersSettings,
-} from '@decent-bet/solido-provider-ethers';
+  EthersPlugin,
+} from 'solido-provider-ethers';
 import { ethers } from 'ethers';
-import { EthersPlugin } from 'solido-provider-ethers';
-import { cDaiImport } from './compound/abis/rinkeby/cDAI';
+import { from, interval } from 'rxjs';
 
+// Setup contract mappings
 const contractMappings = [
   {
-    name: 'cDai',
-    import: cDaiImport,
+    name: 'metacoin',
+    import: {
+      raw: {
+        abi: require('./build/contracts/MetaCoin').abi,
+      },
+      address: {
+        'local': '0x7C52ff3b19103B0197951EDc152f18C35904bf00'
+      }
+    },
     provider: EthersPlugin,
     enableDynamicStubs: true,
   },
 ];
 
 // Create Solido Module
-const module = new SolidoModule(contractMappings);
-const provider = ethers.getDefaultProvider('rinkeby')// new ethers.providers.JsonRpcProvider(URL, 'rinkeby')
+const solido = new SolidoModule(contractMappings);
+const provider = new ethers.providers.JsonRpcProvider('http://localhost:8545')
+const PRIVATE_KEY = '...';
+const ACCOUNT = '0x0bd7637cb3d7c4ffea4d49b0bb3774657814ef48';
 
-    const contracts = module.bindContracts({
-        'ethers': {
-            provider,
-            options: {
-                privateKey: PRIVATE_KEY,
-                defaultAccount: ACCOUNT,
-                provider,
-                network: 'rinkeby',
-                store: {
-                  state: {
-                    'balanceOf': 0,
-                  },
-                  mapActions: {
-                    { 
-                      'transfer': {
-                        getter: 'balanceOf',
-                        onFilter: 'Transfer',
-                        mutation: ({ getter, address, actionArgs}) => {
-                          return from(getter(address));
-                        }
-                      } 
-                    },
-                    { 
-                      'mint': {
-                        getter: 'balanceOf',
-                        onFilter: 'Mint',
-                        mutation: ({ getter, address, actionArgs}) => {
-                          return from(getter(address));
-                        }
-                      } 
-                    },
-                  }
-                }
-            }
-        }
-    }).connect();
+// Configure reactive solido store
+const store = {
+  state: {
+    'getBalance': 0,
+  },
+  mapActions: {
+    sendCoin: {
+      getter: 'getBalance',
+      onFilter: 'Transfer',
+      mutation: (options) => {
+        return from(options.getter(options.address));
+      },
+    }
+  }
+};
 
-contracts.cDai.subscribe('balanceOf',  (data) => {
-  console.log(data);
+// Bind contracts
+const contracts = solido.bindContracts({
+  'ethers': {
+    provider,
+    options: {
+      privateKey: PRIVATE_KEY,
+      defaultAccount: ACCOUNT,
+      provider,
+      network: 'local',
+      store,
+    }
+  }
+}).connect();
+
+// Subscribe to store
+(contracts.metacoin as any).subscribe('getBalance', (data) => {
+  console.log(`subscribed to getBalance: ${data}`);
 });
 
-
-
-
+// Call action
+setInterval(async () => {
+  try {
+    const r = await contracts.metacoin.methods.sendCoin('0x9d9075cb2776218d02ac0e6629a83b73776f9e0d', 1)
+    .call({
+      // need to send dispatch with mapAction name
+      dispatch: 'sendCoin'
+    });
+  // console.log(r);
+  }
+  catch (e) {
+    console.log(e);
+  }
+}, 20000);
 ```
 
 ### Lazy loading contracts
