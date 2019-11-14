@@ -42,14 +42,29 @@ const ACCOUNT = '0x0bd7637cb3d7c4ffea4d49b0bb3774657814ef48';
 // Configure reactive solido store
 const store = {
   state: {
-    'getBalance': 0,
+    'balances': {
+      metacoin: 0,
+      eth: 0,
+    },
   },
   mapActions: {
     sendCoin: {
-      getter: 'getBalance',
+      getter: 'balances',
       onFilter: 'Transfer',
-      mutation: (options) => {
-        return from(options.getter(options.address));
+      mutation: ({ contract }) => {
+        const addr = contract.defaultAccount;
+        return from([contract.methods.getBalanceInEth(addr),
+          contract.methods.getBalance(addr)])
+          .pipe(
+            mergeMap(i => i),
+            toArray(),
+            map(i => {
+              return {
+                metacoin: 1*<any>i[0],
+                eth: 1*<any>i[1]
+              };
+            })
+          )
       },
     }
   }
@@ -70,8 +85,8 @@ const contracts = solido.bindContracts({
 }).connect();
 
 // Subscribe to store
-(contracts.metacoin as any).subscribe('getBalance', (data) => {
-  console.log(`subscribed to getBalance: ${data}`);
+(contracts.metacoin as any).subscribe('balances', (data) => {
+  console.log(`subscribed to balances: ${data}`);
 });
 
 // Call action
