@@ -9,24 +9,45 @@ import { SolidoProvider } from '@decent-bet/solido';
 import { SolidoContract, SolidoSigner } from '@decent-bet/solido';
 import { SolidoTopic } from '@decent-bet/solido';
 
+export type DispatcherArgs = object | [];
 
 export interface MapAction {
     [key: string]: {
         getter: string,
         onFilter: string,
-        mutation: (data: object) => Observable<object>
+        mutation: string | ((e: DispatcherArgs, contract: EthersPlugin) => any),
     };
 }
 
+export interface MapEvent {
+    [key: string]: {
+        getter: string,
+        filter: (contract: EthersPlugin) => [any],
+        mutation: string,
+    };
+}
+
+export interface Mutation {
+    [key: string]: (e: DispatcherArgs, contract: EthersPlugin) => any,
+}
+
+
 export interface ReactiveContractStore {
     mapActions?: MapAction,
+    mapEvents?: MapEvent,
+    mutations: Mutation,
     state: object;
 }
 
+export interface ReactiveBindings {
+    dispatchEvent(name: string): () => {};
+    subscribe(name: string, callback: () => {}): void;
+}
 /**
  * EthersPlugin provider for Solido
  */
-export class EthersPlugin extends SolidoProvider implements SolidoContract {
+export class EthersPlugin extends SolidoProvider
+    implements SolidoContract, ReactiveBindings {
     private provider: ethers.providers.Provider;
     private wallet: ethers.Wallet;
     public network: string;
@@ -36,6 +57,8 @@ export class EthersPlugin extends SolidoProvider implements SolidoContract {
     private privateKey: string;
     private store: ReactiveContractStore = {
         mapActions: {},
+        mapEvents: {},
+        mutations: {},
         state: {}
     };
     private _subscriber: Subject<object>;
@@ -121,6 +144,39 @@ export class EthersPlugin extends SolidoProvider implements SolidoContract {
         }
     }
 
+    /***
+     * Dispatches a reactive subscriptio for an event
+     * @returns A cancellable ticket
+     */
+    dispatchEvent(name: string): () => {} {
+        let cancellable = null;
+        const mapEvent = this.store.mapEvents[name];
+        if (mapEvent) {
+            const evt = this.instance.filters[name](...mapEvent.filter(this));
+            const cb = async (...args) => {
+                let mutation: any = mapEvent.mutation;
+                if (typeof mapEvent.mutation === 'string') {
+                    mutation = this.store.mutations[mapEvent.mutation];
+                }
+                try {
+                    const mutateRes = await mutation([...args], this).toPromise();
+                    this._subscriber.next({
+                        ...this.store.state,
+                        [mapEvent.getter]: mutateRes,
+                    });
+                } catch (e) {
+                    console.log('mutation error');
+                }
+            };
+            this.instance.on(evt, cb);
+            cancellable = () => {
+                this.instance.removeListener(evt, cb);
+            }
+        }
+
+        return cancellable;
+    }
+
     async prepareSigning(methodCall: any, options: IMethodOrEventCall, args: any[]): Promise<SolidoSigner> {
         let gas = options.gas;
 
@@ -138,25 +194,28 @@ export class EthersPlugin extends SolidoProvider implements SolidoContract {
             if (this.instance.listenerCount(mapAction.onFilter) === 0) {
                 this.instance.removeAllListeners(evt);
                 this.instance.on(evt, async () => {
-                    // call getter
-                    const fn = this.instance.functions[mapAction.getter];
-                    const mutateRes = await mapAction.mutation({
-                        contract: this,
-                        e: [...args],
-                    }).toPromise();
-                    this._subscriber.next({
-                        ...this.store.state,
-                        [mapAction.getter]: mutateRes,
-                    });
+                    let mutation: any = mapAction.mutation;
+                    if (typeof mapAction.mutation === 'string') {
+                        mutation = this.store.mutations[mapAction.mutation];
+                    }
+                    try {
+                        const mutateRes = await mutation([...args], this).toPromise();
+                        this._subscriber.next({
+                            ...this.store.state,
+                            [mapAction.getter]: mutateRes,
+                        });
+                    } catch (e) {
+                        console.log('mutation error');
+                    }
                 })
             }
         }
         return new EthersSigner(this.provider, tx);
     }
 
-    subscribe(key: string, fn: any) {
+    subscribe(key: string, fn: any): void {
         if (Object.keys(this.store.state).find(i => i === key)) {
-            return this._subscriber.pipe(pluck(key)).subscribe(fn);
+            this._subscriber.pipe(pluck(key)).subscribe(fn);
         }
     }
 
@@ -185,7 +244,7 @@ export class EthersPlugin extends SolidoProvider implements SolidoContract {
     }
 
     /**
-     * Gets a Connex Event object
+     * Gets an event object
      * @param address contract address
      * @param eventAbi event ABI
      */
@@ -196,34 +255,6 @@ export class EthersPlugin extends SolidoProvider implements SolidoContract {
     }
 
     public async getEvents<P, T>(name: string, eventFilter?: EventFilter<T & any>): Promise<(P)[]> {
-        const options: any = {};
-        if (eventFilter) {
-            const { range, filter, topics, order, pageOptions, blocks } = eventFilter;
-            if (filter) {
-                options.filter = filter;
-            }
-
-            if (blocks) {
-                const { fromBlock, toBlock } = blocks
-                options.toBlock = toBlock;
-                options.fromBlock = fromBlock;
-            }
-
-            if (range) {
-                options.range = range
-            }
-
-            if (topics) {
-                options.topics = (topics as SolidoTopic).get()
-            }
-
-            options.order = order || 'desc';
-
-            if (pageOptions) {
-                options.options = pageOptions
-            }
-        }
-
-        return await this.instance.getPastEvents(name, options);
+        throw new Error('Use getEvent(eventName) and query using Ethers API');
     }
 }

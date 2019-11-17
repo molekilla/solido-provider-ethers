@@ -47,25 +47,37 @@ const store = {
       eth: 0,
     },
   },
+  mutations: {
+    SET_BALANCE: (e: DispatcherArgs, contract: EthersPlugin) => {
+      const addr = contract.defaultAccount;
+      return from([contract.methods.getBalanceInEth(addr),
+        contract.methods.getBalance(addr)])
+        .pipe(
+          mergeMap(i => i),
+          toArray(),
+          map(i => {
+            return {
+              metacoin: 1*<any>i[0],
+              eth: 1*<any>i[1]
+            };
+          })
+        )
+    }
+  },
+  mapEvents: {
+    Transfer: {
+      getter: 'balances',
+      mutation: 'SET_BALANCE',
+      filter: (contract: any) => {
+        return [contract.defaultAccount];
+      },
+    }
+  },
   mapActions: {
     sendCoin: {
       getter: 'balances',
       onFilter: 'Transfer',
-      mutation: ({ contract }) => {
-        const addr = contract.defaultAccount;
-        return from([contract.methods.getBalanceInEth(addr),
-          contract.methods.getBalance(addr)])
-          .pipe(
-            mergeMap(i => i),
-            toArray(),
-            map(i => {
-              return {
-                metacoin: 1*<any>i[0],
-                eth: 1*<any>i[1]
-              };
-            })
-          )
-      },
+      mutation: 'SET_BALANCE',
     }
   }
 };
@@ -84,12 +96,14 @@ const contracts = solido.bindContracts({
   }
 }).connect();
 
-// Subscribe to store
-(contracts.metacoin as any).subscribe('balances', (data) => {
+const metacoin = contracts.metacoin as ReactiveBindings;
+
+// Subscribe to store 
+metacoin.subscribe('balances', (data) => {
   console.log(`subscribed to balances: ${data}`);
 });
 
-// Call action
+// Transfer
 setInterval(async () => {
   try {
     const r = await contracts.metacoin.methods.sendCoin('0x9d9075cb2776218d02ac0e6629a83b73776f9e0d', 1)
@@ -103,6 +117,10 @@ setInterval(async () => {
     console.log(e);
   }
 }, 20000);
+
+
+// Subscribe to transfer events when token are sent to defaultAccount
+metacoin.dispatchEvent('Transfer');
 ```
 
 ### Lazy loading contracts
