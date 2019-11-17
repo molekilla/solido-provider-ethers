@@ -1,11 +1,11 @@
 # solido-provider-ethers
 Solido provider for Ethers
 
+
 ## Examples
 
 
-
-### Reactive
+### Reactive Bindings
 ```typescript
 import {
   SolidoModule,
@@ -204,6 +204,30 @@ const { ThorifyToken, ConnexToken }: MyContracts = contracts.connect();
 })();
 ```
 
+### Dynamic Contract Entities
+
+To let Solido generate Read, Write and Event methods, set `enableDynamicStubs: true` in contract mapping entry and use `GetDynamicContract` to get the contract. The generated stubs are available in `contract.methods`.
+
+```typescript
+export const module = new SolidoModule(
+  [
+    {
+      name: 'ThorifyToken',
+      import: EnergyContractImport,
+      enableDynamicStubs: true
+    }
+  ],
+  ThorifyPlugin
+);
+
+const contracts = module.bindContracts();
+
+const token = contracts.getDynamicContract('ThorifyToken');
+
+const balance = await token.methods.balanceOf();
+
+const transferEvent = await token.events.Transfer(); // Returns an event object dependending on provider
+```
 
 
 ### GetMethod
@@ -274,35 +298,22 @@ console.log(tx);
 * `gasPriceCoef`: Gas price coefficient
 * `from`: From address
 
-### GetEvents
 
-Executes a log event query and returns an array of typed logs.
+### GetEvent
+
+Returns an event filter.
 
 ```typescript
-class MyContractClass {
-  @GetEvents({
-    name: 'Transfer',
-    blocks: {
-      fromBlock: 0,
-      toBlock: 'latest'
-    },
-    order: 'desc',
-    pageOptions: { limit: 10, offset: 0 }
-  })
-  public getTransferEvents: (
-    fnOptions?: EventFilter<any>
-  ) => Promise<ThorifyLog[]>;
-  // The return type can by ThorifyLog or Connex.Thor.Event depending of the driver used in the contract.
-}
-
-// ...
-// get the events
-// you can pass the same EventFilter object in every call to change the options
-const events = await myContractClassInstance.getTransferEvents({
-  pageOptions: { limit: 10, offset: 10 }
+const transfer = metacoin.GetEvent('Transfer');
+metacoin.instance.on(transfer(null, metacoin.defaultAccount), (...args) => {
+ // args returns the event parameters, the last parameter is the complete event log object
 });
-console.log(events);
 ```
+
+### GetEvents
+
+Not supported. Use `GetEvent` and existing Ethers event API.
+
 
 ### Short module syntax
 
@@ -326,30 +337,6 @@ const token = contracts.getContract<Web3Plugin>('Web3Token');
 const balance = await token.methods.balanceOf();
 ```
 
-### Dynamic Contract Entities
-
-To let Solido generate Read, Write and Event methods, set `enableDynamicStubs: true` in contract mapping entry and use `GetDynamicContract` to get the contract. The generated stubs are available in `contract.methods`.
-
-```typescript
-export const module = new SolidoModule(
-  [
-    {
-      name: 'ThorifyToken',
-      import: EnergyContractImport,
-      enableDynamicStubs: true
-    }
-  ],
-  ThorifyPlugin
-);
-
-const contracts = module.bindContracts();
-
-const token = contracts.getDynamicContract('ThorifyToken');
-
-const balance = await token.methods.balanceOf();
-
-const transferEvent = await token.events.Transfer(); // Returns an event object dependending on provider
-```
 
 ### Topic Queries
 
@@ -372,21 +359,6 @@ const filterOptions: EventFilter<any> = {
 const logs = await energy.logTransfer(filterOptions);
 ```
 
-### Connex specific utilities - RxJS operators
-
-#### blockConfirmationUntil
-
-Waits for a block confirmation. Useful for waiting a confirmation and then request the transaction log.
-
-```typescript
-const response: any = await energy.logTransfer();
-const blockConfirmation = blockConfirmationUntil(response.txid);
-const subscription = blockConfirmation
-  .pipe(switchMap(_ => response))
-  .subscribe((log: any) => {
-    // ... code goes here
-  });
-```
 
 ### Plugins
 
