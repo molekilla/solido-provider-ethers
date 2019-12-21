@@ -107,7 +107,15 @@ export class EthersPlugin extends SolidoProvider
                 this.provider
             )
             this.address = this.contractImport.address[this.network];
-            if (this.privateKey) {
+            if (this.privateKey === 'provider') {
+                const randomwallet = ethers.Wallet.createRandom();
+                this.wallet = randomwallet.connect(this.provider);
+                this.instance = new ethers.Contract(
+                    this.contractImport.address[this.network],
+                    this.contractImport.raw.abi as any,
+                    this.wallet,
+                );
+            } else if (this.privateKey) {
                 this.wallet = new ethers.Wallet(this.privateKey, this.provider);
                 this.instance = new ethers.Contract(
                     this.contractImport.address[this.network],
