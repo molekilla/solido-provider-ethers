@@ -188,11 +188,13 @@ export class EthersPlugin extends SolidoProvider
     async prepareSigning(methodCall: any, options: IMethodOrEventCall, args: any[]): Promise<SolidoSigner> {
         let gas = options.gas;
 
-        if (!options.gas) gas = 1000000
+        if (!options.gas) gas = 100_000
 
         // get method instance with args
         const tx: ethers.ContractTransaction = await methodCall(...args, {
+            // from:  options.from || this.defaultAccount,
             gasLimit: gas,
+            gasPrice: (options as any).gasPrice || 21_000
         });
 
         const mapActionName = (<any>options).dispatch;
@@ -237,9 +239,7 @@ export class EthersPlugin extends SolidoProvider
         addr = this.contractImport.address[this.network];
         const fn: ethers.ContractFunction = this.instance.functions[name];
 
-        return fn(...args, {
-            from: addr
-        });
+        return fn(...args);
     }
     /**
      * Gets a Ethers Method object
