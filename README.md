@@ -123,6 +123,10 @@ setInterval(async () => {
 metacoin.dispatchEvent('Transfer');
 ```
 
+### Metamask, Infura and Ethers
+
+Set `provider` to `metamask`.
+
 ### Lazy loading contracts
 ```typescript
 // Create Solido Module

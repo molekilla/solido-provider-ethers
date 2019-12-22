@@ -8,6 +8,8 @@ import { EthersSettings } from './EthersSettings';
 import { SolidoProvider } from '@decent-bet/solido';
 import { SolidoContract, SolidoSigner } from '@decent-bet/solido';
 import { SolidoTopic } from '@decent-bet/solido';
+import { UncheckedJsonRpcSigner } from './UncheckedSigner';
+import { JsonRpcProvider } from 'ethers/providers';
 
 export type DispatcherArgs = object | [];
 
@@ -107,13 +109,14 @@ export class EthersPlugin extends SolidoProvider
                 this.provider
             )
             this.address = this.contractImport.address[this.network];
-            if (this.privateKey === 'provider') {
+            if (this.privateKey === 'metamask' || this.privateKey === 'provider') {
                 const randomwallet = ethers.Wallet.createRandom();
                 this.wallet = randomwallet.connect(this.provider);
+                const signer = new UncheckedJsonRpcSigner((this.provider as JsonRpcProvider).getSigner());
                 this.instance = new ethers.Contract(
                     this.contractImport.address[this.network],
                     this.contractImport.raw.abi as any,
-                    this.wallet,
+                    signer,
                 );
             } else if (this.privateKey) {
                 this.wallet = new ethers.Wallet(this.privateKey, this.provider);
