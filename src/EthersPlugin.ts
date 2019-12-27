@@ -206,13 +206,13 @@ export class EthersPlugin extends SolidoProvider
             let evt = this.instance.filters[mapAction.onFilter]();
             if (this.instance.listenerCount(mapAction.onFilter) === 0) {
                 this.instance.removeAllListeners(evt);
-                this.instance.on(evt, async () => {
+                this.instance.on(evt, async (...params) => {
                     let mutation: any = mapAction.mutation;
                     if (typeof mapAction.mutation === 'string') {
                         mutation = this.store.mutations[mapAction.mutation];
                     }
                     try {
-                        const mutateRes = await mutation([...args], this).toPromise();
+                        const mutateRes = await mutation([...params], this).toPromise();
                         this._subscriber.next({
                             ...this.store.state,
                             [mapAction.getter]: mutateRes,
