@@ -67,10 +67,7 @@ const store = {
   mapEvents: {
     Transfer: {
       getter: 'balances',
-      mutation: 'SET_BALANCE',
-      filter: (contract: any) => {
-        return [contract.defaultAccount];
-      },
+      mutation: 'SET_BALANCE'
     }
   },
   mapActions: {
@@ -120,7 +117,7 @@ setInterval(async () => {
 
 
 // Subscribe to transfer events when token are sent to defaultAccount
-metacoin.dispatchEvent('Transfer');
+metacoin.dispatchEvent('Transfer', [metacoin.defaultAccount]);
 ```
 
 ### Metamask, Infura and Ethers

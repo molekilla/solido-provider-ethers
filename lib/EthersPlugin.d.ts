@@ -13,7 +13,6 @@ export interface MapAction {
 export interface MapEvent {
     [key: string]: {
         getter: string;
-        filter: (contract: EthersPlugin) => [any];
         mutation: string;
     };
 }
@@ -27,7 +26,7 @@ export interface ReactiveContractStore {
     state: object;
 }
 export interface ReactiveBindings {
-    dispatchEvent(name: string): () => {};
+    dispatchEvent(name: string, filter: any[]): () => {};
     subscribe(name: string, callback: () => {}): void;
 }
 export declare class EthersPlugin extends SolidoProvider implements SolidoContract, ReactiveBindings {
@@ -45,7 +44,7 @@ export declare class EthersPlugin extends SolidoProvider implements SolidoContra
     onReady<T>(settings: T & EthersSettings): void;
     connect(): void;
     setInstanceOptions(settings: ProviderInstance): void;
-    dispatchEvent(name: string): () => {};
+    dispatchEvent(name: string, filter: any[]): () => {};
     prepareSigning(methodCall: any, options: IMethodOrEventCall, args: any[]): Promise<SolidoSigner>;
     subscribe(key: string, fn: any): void;
     getAbiMethod(name: string): object;

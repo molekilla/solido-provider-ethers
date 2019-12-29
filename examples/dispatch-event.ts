@@ -42,10 +42,7 @@ const store = {
   mapEvents: {
     Transfer: {
       getter: 'balances',
-      mutation: 'SET_BALANCE',
-      filter: (contract: any) => {
-        return [contract.defaultAccount];
-      },
+      mutation: 'SET_BALANCE'
     }
   },
   mapActions: {
@@ -82,7 +79,7 @@ metacoin.subscribe('getBalance', (data) => {
   console.log(`subscribed to getBalance: ${JSON.stringify(data)}`);
 });
 
-metacoin.dispatchEvent('Transfer');
+metacoin.dispatchEvent('Transfer', [metacoin.defaultAccount]);
 
 // Call action
 setInterval(async () => {

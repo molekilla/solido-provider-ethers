@@ -24,7 +24,6 @@ export interface MapAction {
 export interface MapEvent {
     [key: string]: {
         getter: string,
-        filter: (contract: EthersPlugin) => [any],
         mutation: string,
     };
 }
@@ -42,7 +41,7 @@ export interface ReactiveContractStore {
 }
 
 export interface ReactiveBindings {
-    dispatchEvent(name: string): () => {};
+    dispatchEvent(name: string, filter: any[]): () => {};
     subscribe(name: string, callback: () => {}): void;
 }
 /**
@@ -159,11 +158,11 @@ export class EthersPlugin extends SolidoProvider
      * Dispatches a reactive subscriptio for an event
      * @returns A cancellable ticket
      */
-    dispatchEvent(name: string): () => {} {
+    dispatchEvent(name: string, filter: any[]): () => {} {
         let cancellable = null;
         const mapEvent = this.store.mapEvents[name];
         if (mapEvent) {
-            const evt = this.instance.filters[name](...mapEvent.filter(this));
+            const evt = this.instance.filters[name](...filter);
             const cb = async (...args) => {
                 let mutation: any = mapEvent.mutation;
                 if (typeof mapEvent.mutation === 'string') {
