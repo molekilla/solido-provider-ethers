@@ -10,7 +10,7 @@ import { SolidoContract, SolidoSigner } from '@decent-bet/solido';
 import { SolidoTopic } from '@decent-bet/solido';
 import { UncheckedJsonRpcSigner } from './UncheckedSigner';
 import { JsonRpcProvider } from 'ethers/providers';
-
+import { Wallet } from 'xdvplatform-wallet'
 export type DispatcherArgs = object | [];
 
 export interface MapAction {
@@ -63,6 +63,7 @@ export class EthersPlugin extends SolidoProvider
         state: {}
     };
     private _subscriber: Subject<object>;
+    xdv: Wallet;
     public getProviderType(): SolidoProviderType {
         return SolidoProviderType.Ethers;
     }
@@ -100,7 +101,13 @@ export class EthersPlugin extends SolidoProvider
         }
     }
 
-    public connect() {
+    public connect(
+        xdv?: Wallet
+    ) {
+        if (xdv){
+            this.xdv =  xdv;
+            this.privateKey = xdv.getES256K().getPrivate('hex');
+        }
         if (this.provider && this.network && this.defaultAccount) {
             this.instance = new ethers.Contract(
                 this.contractImport.address[this.network],
@@ -222,7 +229,7 @@ export class EthersPlugin extends SolidoProvider
                 })
             }
         }
-        return new EthersSigner(this.provider, tx);
+        return new EthersSigner(this.provider, this.wallet, this.xdv, tx);
     }
 
     subscribe(key: string, fn: any): void {

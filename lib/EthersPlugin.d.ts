@@ -2,6 +2,7 @@ import { IMethodOrEventCall, EventFilter, SolidoProviderType, ProviderInstance }
 import { EthersSettings } from './EthersSettings';
 import { SolidoProvider } from '@decent-bet/solido';
 import { SolidoContract, SolidoSigner } from '@decent-bet/solido';
+import { Wallet } from 'xdvplatform-wallet';
 export declare type DispatcherArgs = object | [];
 export interface MapAction {
     [key: string]: {
@@ -39,10 +40,11 @@ export declare class EthersPlugin extends SolidoProvider implements SolidoContra
     private privateKey;
     private store;
     private _subscriber;
+    xdv: Wallet;
     getProviderType(): SolidoProviderType;
     describe(): string;
     onReady<T>(settings: T & EthersSettings): void;
-    connect(): void;
+    connect(xdv?: Wallet): void;
     setInstanceOptions(settings: ProviderInstance): void;
     dispatchEvent(name: string, filter: any[]): () => {};
     prepareSigning(methodCall: any, options: IMethodOrEventCall, args: any[]): Promise<SolidoSigner>;
