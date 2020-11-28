@@ -63,7 +63,7 @@ export class EthersPlugin extends SolidoProvider
         state: {}
     };
     private _subscriber: Subject<object>;
-    xdv: Wallet;
+    public walletProvider: Wallet;
     public getProviderType(): SolidoProviderType {
         return SolidoProviderType.Ethers;
     }
@@ -72,9 +72,10 @@ export class EthersPlugin extends SolidoProvider
         return `network: ${this.network}`;
     }
     onReady<T>(settings: T & EthersSettings) {
-        const { privateKey, store, provider, network, defaultAccount } = settings;
+        const { walletProvider, privateKey, store, provider, network, defaultAccount } = settings;
         this.privateKey = privateKey;
         this.provider = provider;
+        this.walletProvider = walletProvider;
         this.network = network;
         this.defaultAccount = defaultAccount;
         this.instance = new ethers.Contract(
@@ -83,6 +84,10 @@ export class EthersPlugin extends SolidoProvider
             provider
         );
         this.address = this.contractImport.address[network];
+
+        if (walletProvider instanceof Wallet) {
+            this.privateKey = walletProvider.getES256K().getPrivate('hex');
+        }
         if (privateKey) {
             this.wallet = new ethers.Wallet(privateKey, provider);
             this.instance = new ethers.Contract(
@@ -102,11 +107,10 @@ export class EthersPlugin extends SolidoProvider
     }
 
     public connect(
-        xdv?: Wallet
     ) {
-        if (xdv){
-            this.xdv =  xdv;
-            this.privateKey = xdv.getES256K().getPrivate('hex');
+
+        if (this.walletProvider instanceof Wallet) {
+            this.privateKey = this.walletProvider.getES256K().getPrivate('hex');
         }
         if (this.provider && this.network && this.defaultAccount) {
             this.instance = new ethers.Contract(
@@ -229,7 +233,7 @@ export class EthersPlugin extends SolidoProvider
                 })
             }
         }
-        return new EthersSigner(this.provider, this.wallet, this.xdv, tx);
+        return new EthersSigner(this.provider, this.wallet, this.walletProvider, tx);
     }
 
     subscribe(key: string, fn: any): void {

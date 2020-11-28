@@ -40,11 +40,11 @@ export declare class EthersPlugin extends SolidoProvider implements SolidoContra
     private privateKey;
     private store;
     private _subscriber;
-    xdv: Wallet;
+    walletProvider: Wallet;
     getProviderType(): SolidoProviderType;
     describe(): string;
     onReady<T>(settings: T & EthersSettings): void;
-    connect(xdv?: Wallet): void;
+    connect(): void;
     setInstanceOptions(settings: ProviderInstance): void;
     dispatchEvent(name: string, filter: any[]): () => {};
     prepareSigning(methodCall: any, options: IMethodOrEventCall, args: any[]): Promise<SolidoSigner>;
